@@ -1,10 +1,15 @@
-from src.population import nbits, generate_population, evaluate_population
+from cross_methods import cross
+from inversion import invert_pop
+from mutation import mutate
+from population import nbits, generate_population, evaluate_population, get_elites, get_best, select
+import numpy as np
+import random
 
 
 class GeneticAlgorithm:
     def __init__(self, objective_function, population_size, n_generations, bounds, N=2, precision=6,
                  selection_method='best', selection_ratio=0.3, tournament_size=3, mutation_method='n_points',
-                 mutation_probability=0.7, n_mutation_points=1, n_elites=1, cross_method='single', p_cross=0.5,
+                 p_mutation=0.7, n_mutation_points=1, n_elites=1, cross_method='single', p_cross=0.5,
                  p_inversion=0.0):
         self.objective_function = objective_function
         self.population_size = population_size
@@ -16,20 +21,74 @@ class GeneticAlgorithm:
         self.selection_ratio = selection_ratio
         self.tournament_size = tournament_size
         self.mutation_method = mutation_method
-        self.mutation_probability = mutation_probability
+        self.p_mutation = p_mutation
         self.n_mutation_points = n_mutation_points
         self.n_elites = n_elites
         self.cross_method = cross_method
         self.p_cross = p_cross
         self.p_inversion = p_inversion
-        self.bits = nbits(self.bounds[0], self.bounds[1], self.precision)
-        self.population = generate_population(self.population_size, self.N, self.bits)
-        self.evaluated_population = evaluate_population()
-        best_generation = 0
-        list_best = []
-        list_best_generation = []
-        list_mean = []
 
     def evolve(self):
-        pass
+        best_generation = 0
+        bits = nbits(self.bounds[0], self.bounds[1], self.precision)
+        population = generate_population(self.population_size, self.N, bits)
+        evaluated_population = evaluate_population(self.objective_function, population, self.N, bits, self.bounds[0],
+                                                   self.bounds[1])
+        elites, best_indices = get_elites(population, evaluated_population, self.n_elites, False)
+        best_solution, best_value = get_best(population, evaluated_population, False)
 
+        for i in range(self.n_generations):
+            new_population = np.empty((0, population.shape[1]), dtype=int)
+
+            # Select % of the previous population
+            selected = select(population,
+                              evaluated_population,
+                              self.selection_method,
+                              self.selection_ratio, self
+                              .tournament_size,
+                              False)
+
+            editable_population_size = self.population_size - self.n_elites
+
+            # Cross
+            while len(new_population) < editable_population_size:
+                random_parents = random.sample(list(selected), 2)
+                children = cross(*random_parents, method=self.cross_method, p=self.p_cross)
+                children_to_add = children[:(editable_population_size - len(new_population))]
+                new_population = np.vstack((new_population, np.array(children_to_add)))
+
+            assert (len(new_population) == editable_population_size), \
+                f"Expected population size: {editable_population_size}. Found: {len(new_population)}."
+
+            # Mutate
+            new_population = mutate(new_population, self.p_mutation, self.mutation_method, self.n_mutation_points)
+
+            # Invert
+            new_population = invert_pop(new_population, self.p_inversion)
+
+            # Merge previous elites with new popuation
+            new_population = np.vstack((new_population, elites))
+            population = new_population
+
+            assert population.shape[0] == self.population_size and population.shape[1] == self.N * bits, \
+                f"Population size mismatch. Expected: {(self.population_size, self.N * bits)}. Found: {population.shape}."
+
+            evaluated_population = evaluate_population(self.objective_function,
+                                                       population,
+                                                       self.N,
+                                                       bits,
+                                                       self.bounds[0], self.bounds[1])
+            elites, elites_indices = get_elites(population, evaluated_population, self.n_elites, False)
+            best_solution_from_generation, best_value_from_generation = get_best(population,
+                                                                                 evaluated_population,
+                                                                                 False)
+
+            if best_value_from_generation < best_value:
+                best_generation = i
+                best_solution = best_solution_from_generation
+                best_value = best_value_from_generation
+
+            if i == 0 or (i + 1) % 10 == 0:
+                print(f"Gen: {i + 1}. Wynik: {best_value}")
+
+        return best_solution, best_value, best_generation

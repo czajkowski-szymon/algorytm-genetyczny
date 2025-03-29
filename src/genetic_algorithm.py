@@ -1,7 +1,7 @@
 from cross_methods import cross
 from inversion import invert_pop
 from mutation import mutate
-from population import nbits, generate_population, evaluate_population, get_elites, get_best, select
+from population import nbits, generate_population, evaluate_population, get_elites, get_best, select, decode_population
 import numpy as np
 import random
 
@@ -28,6 +28,10 @@ class GeneticAlgorithm:
         self.p_cross = p_cross
         self.p_inversion = p_inversion
 
+        self.population_history = []
+        self.get_history_step = n_generations // 5
+        self.best_values_history = []
+
     def evolve(self):
         best_generation = 0
         bits = nbits(self.bounds[0], self.bounds[1], self.precision)
@@ -36,6 +40,9 @@ class GeneticAlgorithm:
                                                    self.bounds[1])
         elites, best_indices = get_elites(population, evaluated_population, self.n_elites, False)
         best_solution, best_value = get_best(population, evaluated_population, False)
+
+        self.population_history.append((0, decode_population(population.copy(), self.N, bits, self.bounds[0], self.bounds[1]), evaluated_population.copy()))
+        self.best_values_history.append(best_value)
 
         for i in range(self.n_generations):
             new_population = np.empty((0, population.shape[1]), dtype=int)
@@ -82,6 +89,10 @@ class GeneticAlgorithm:
             best_solution_from_generation, best_value_from_generation = get_best(population,
                                                                                  evaluated_population,
                                                                                  False)
+            self.best_values_history.append(best_value_from_generation)
+
+            if i % self.get_history_step == 0:
+                self.population_history.append((i, decode_population(population.copy(), self.N, bits, self.bounds[0], self.bounds[1]), evaluated_population.copy()))
 
             if best_value_from_generation < best_value:
                 best_generation = i
@@ -91,4 +102,6 @@ class GeneticAlgorithm:
             if i == 0 or (i + 1) % 10 == 0:
                 print(f"Gen: {i + 1}. Wynik: {best_value}")
 
-        return best_solution, best_value, best_generation
+        self.population_history.append((self.n_generations, decode_population(population.copy(), self.N, bits, self.bounds[0], self.bounds[1]), evaluated_population.copy()))
+
+        return { 'best_solution': best_solution, 'best_value': best_value, 'best_generation': best_generation }

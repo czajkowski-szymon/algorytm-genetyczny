@@ -1,9 +1,16 @@
 import sys
+import time
+from datetime import datetime
+from pathlib import Path
+
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QPushButton, QFormLayout, QSpinBox, \
     QDoubleSpinBox, QComboBox, QLabel
-from src.genetic_algorithm import GeneticAlgorithm
-from src.objective_function import hypersphere
-from src.population import nbits, decode_individual
+
+from file_writer import save
+from genetic_algorithm import GeneticAlgorithm
+from objective_function import hypersphere
+from plotter import plot_function_3d, plot_population_3d, plot_best
+from population import nbits, decode_individual
 
 
 class GeneticAlgorithmGUI(QWidget):
@@ -44,7 +51,6 @@ class GeneticAlgorithmGUI(QWidget):
         self.precision_input.setValue(6)
         form_layout.addRow('Precision:', self.precision_input)
 
-        # Selection method with display text mapping
         self.selection_method_input = QComboBox()
         self.selection_methods = {
             'best': 'Best',
@@ -67,7 +73,6 @@ class GeneticAlgorithmGUI(QWidget):
         self.tournament_size_input.setValue(3)
         form_layout.addRow('Tournament Size:', self.tournament_size_input)
 
-        # Mutation type with display text mapping
         self.mutation_type_input = QComboBox()
         self.mutation_types = {
             'n_points': 'N Points',
@@ -94,7 +99,6 @@ class GeneticAlgorithmGUI(QWidget):
         self.n_elites_input.setValue(1)
         form_layout.addRow('Number of Elites:', self.n_elites_input)
 
-        # Cross method with display text mapping
         self.cross_method_input = QComboBox()
         self.cross_methods = {
             'single': 'Single Point',
@@ -178,7 +182,6 @@ class GeneticAlgorithmGUI(QWidget):
         """)
 
     def update_tournament_size_visibility(self):
-        # Get the underlying data value, not the display text
         selection_method = self.selection_method_input.currentData()
         if selection_method == 'tournament':
             self.tournament_size_input.show()
@@ -186,7 +189,6 @@ class GeneticAlgorithmGUI(QWidget):
             self.tournament_size_input.hide()
 
     def update_mutation_points_visibility(self):
-        # Get the underlying data value, not the display text
         mutation_type = self.mutation_type_input.currentData()
         if mutation_type == 'n_points':
             self.n_mutation_points_input.show()
@@ -194,7 +196,6 @@ class GeneticAlgorithmGUI(QWidget):
             self.n_mutation_points_input.hide()
 
     def update_cross_probability_visibility(self):
-        # Get the underlying data value, not the display text
         cross_method = self.cross_method_input.currentData()
         if cross_method == 'uniform':
             self.p_cross_input.show()
@@ -208,7 +209,6 @@ class GeneticAlgorithmGUI(QWidget):
         N = self.N_input.value()
         precision = self.precision_input.value()
 
-        # Get the underlying data values, not the display text
         selection_method = self.selection_method_input.currentData()
         selection_ratio = self.selection_ratio_input.value()
         tournament_size = self.tournament_size_input.value()
@@ -239,15 +239,29 @@ class GeneticAlgorithmGUI(QWidget):
             p_inversion=p_inversion
         )
 
-        best_solution, best_value, best_generation = ga.evolve()
+        start = time.time()
+        result = ga.evolve()
+        end = time.time()
 
         bits = nbits(bounds[0], bounds[1], precision)
-        decoded = decode_individual(best_solution, N, bits, bounds[0], bounds[1])
+        decoded = decode_individual(result['best_solution'], N, bits, bounds[0], bounds[1])
+        result['decoded_solution'] = decoded
+        result['time'] = end - start
 
-        self.best_solution_label.setText(f'Best Solution:\n {best_solution}')
-        self.best_value_label.setText(f'Best Value:\n {best_value}')
+        self.best_solution_label.setText(f'Best Solution:\n {result['best_solution']}')
+        self.best_value_label.setText(f'Best Value:\n {result["best_value"]}')
         self.decoded_best_value_label.setText(f'Decoded Best Value:\n {decoded}')
-        self.best_generation_label.setText(f'Best Generation:\n {best_generation}')
+        self.best_generation_label.setText(f'Best Generation:\n {result["best_generation"]}')
+
+        dir_name = f"../results/{datetime.now().strftime('%d-%m-%Y_%H-%M-%S')}"
+        Path(dir_name).mkdir(parents=True, exist_ok=True)
+        save(f"{dir_name}/wynik.txt", result)
+        plot_function_3d(hypersphere, f"{dir_name}/funkcja_celu.png")
+
+        for population in ga.population_history:
+            plot_population_3d(population[1], population[2], f"Generacja nr. {population[0]}",f"{dir_name}/generacja-nr-{population[0]}.png")
+
+        plot_best(ga.best_values_history, "Wykres wartości najlepszego rozwiązania w zależności od generacji", f"{dir_name}/wykres.png")
 
 
 if __name__ == '__main__':

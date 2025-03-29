@@ -20,6 +20,9 @@ def decode_individual(individual: np.ndarray, N: int, B: int, a: float, b: float
 
     return a + decimals * (b - a) / (2 ** B - 1)
 
+def decode_population(population: np.ndarray, N: int, B: int, a: float, b: float) -> list:
+    return [decode_individual(individual, N, B, a, b) for individual in population]
+
 
 def evaluate_population(func, pop, N, B, a, b):
     decode = lambda x: decode_individual(x, N, B, a, b)

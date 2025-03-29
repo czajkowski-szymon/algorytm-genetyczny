@@ -1,10 +1,17 @@
+from datetime import datetime
+from pathlib import Path
+
 from genetic_algorithm import GeneticAlgorithm
 from objective_function import hypersphere
 from population import nbits, decode_individual
+from file_writer import save
+import time
+
+from plotter import *
 
 genetic_algorithm = GeneticAlgorithm(objective_function=hypersphere,
                                      population_size=100,
-                                     n_generations=1000,
+                                     n_generations=100,
                                      bounds=(-5, 5),
                                      N=2,
                                      precision=6,
@@ -18,13 +25,23 @@ genetic_algorithm = GeneticAlgorithm(objective_function=hypersphere,
                                      p_cross=0.5,
                                      p_inversion=0.2,
                                      n_elites=1)
-
-best_solution, best_value, best_generation = genetic_algorithm.evolve()
+start = time.time()
+result = genetic_algorithm.evolve()
+end = time.time()
 
 bits = nbits(-5, 5, 6)
-decoded = decode_individual(best_solution, 2, bits, -5, 5)
+decoded = decode_individual(result['best_solution'], 2, bits, -5, 5)
+result['decoded_solution'] = decoded
+result['time'] = end - start
 
-print(f"Najlepsze rozwiazanie: {best_solution}")
-print(f"Wartosc najlepszego rozwiazania: {best_value}")
-print(f"Wartosc najlepszego rozwiazania (zdekodowana): {decoded}")
-print(f"Numer najlepszej generacji: {best_generation}")
+dir_name = f"../results/{datetime.now().strftime('%d-%m-%Y_%H-%M-%S')}"
+Path(dir_name).mkdir(parents=True, exist_ok=True)
+
+save(f"{dir_name}/wynik.txt", result)
+
+plot_function_3d(hypersphere, f"{dir_name}/funkcja_celu.png")
+
+for population in genetic_algorithm.population_history:
+    plot_population_3d(population[1], population[2], f"Generacja nr. {population[0]}",f"{dir_name}/generacja-nr-{population[0]}.png")
+
+plot_best(genetic_algorithm.best_values_history, "Wykres wartości najlepszego rozwiązania w zależności od generacji", f"{dir_name}/wykres.png")

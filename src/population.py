@@ -70,7 +70,7 @@ def roulette(pop, pop_results, n_selected, max=True):
     evaluated_pop = pop_results if max else pop_results ** (-1)
 
     sum_all = np.sum(evaluated_pop)
-    probabilities = evaluated_pop / sum_all;
+    probabilities = evaluated_pop / sum_all
 
     assert np.isclose(np.sum(probabilities), 1), f"Sum of propabilities does not equal 1. Found: {sum(probabilities)}"
 

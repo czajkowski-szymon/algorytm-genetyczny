@@ -37,4 +37,4 @@ def uniform_cross(parent1: np.ndarray, parent2: np.ndarray, p: float = 0.5) -> n
 
 def discrete_cross(parent1: np.ndarray, parent2: np.ndarray):
     mask = np.random.rand(len(parent1)) < 0.5
-    return np.where(mask, parent2, parent1)
+    return np.where(mask, parent2, parent1)[np.newaxis, ...]

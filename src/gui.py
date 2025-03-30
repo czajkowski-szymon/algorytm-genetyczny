@@ -178,6 +178,7 @@ class GeneticAlgorithmGUI(QWidget):
             QLabel {
                 font-weight: bold;
                 margin: 5px;
+                font-size: 14px;
             }
         """)
 
@@ -203,6 +204,10 @@ class GeneticAlgorithmGUI(QWidget):
             self.p_cross_input.hide()
 
     def run_genetic_algorithm(self):
+        self.run_button.setEnabled(False)
+        self.run_button.setText('Calculating...')
+        QApplication.processEvents()
+
         population_size = self.population_size_input.value()
         n_generations = self.n_generations_input.value()
         bounds = tuple(map(float, self.bounds_input.text().split(',')))
@@ -244,14 +249,17 @@ class GeneticAlgorithmGUI(QWidget):
         end = time.time()
 
         bits = nbits(bounds[0], bounds[1], precision)
-        decoded = decode_individual(result['best_solution'], N, bits, bounds[0], bounds[1])
-        result['decoded_solution'] = decoded
+        result['decoded_solution'] = decode_individual(result['best_solution'], N, bits, bounds[0], bounds[1])
         result['time'] = end - start
 
-        self.best_solution_label.setText(f'Best Solution:\n {result['best_solution']}')
-        self.best_value_label.setText(f'Best Value:\n {result["best_value"]}')
-        self.decoded_best_value_label.setText(f'Decoded Best Value:\n {decoded}')
-        self.best_generation_label.setText(f'Best Generation:\n {result["best_generation"]}')
+        global_optimum_solution = [0] * N
+        global_optimum_value = 0
+
+        self.best_solution_label.setText(f'Best Solution:\n{result["decoded_solution"]}')
+        self.best_value_label.setText(f'Best Value:\n{result["best_value"]}')
+        self.decoded_best_value_label.setText(f'Global Optimum Solution:\n{global_optimum_solution}')
+        self.best_generation_label.setText(
+            f'Global Optimum Value:\n{global_optimum_value}\nBest Generation:\n{result["best_generation"]}')
 
         dir_name = f"../results/{datetime.now().strftime('%d-%m-%Y_%H-%M-%S')}"
         Path(dir_name).mkdir(parents=True, exist_ok=True)
@@ -259,9 +267,14 @@ class GeneticAlgorithmGUI(QWidget):
         plot_function_3d(hypersphere, f"{dir_name}/funkcja_celu.png")
 
         for population in ga.population_history:
-            plot_population_3d(population[1], population[2], f"Generacja nr. {population[0]}",f"{dir_name}/generacja-nr-{population[0]}.png")
+            plot_population_3d(population[1], population[2], f"Generacja nr. {population[0]}",
+                               f"{dir_name}/generacja-nr-{population[0]}.png")
 
-        plot_best(ga.best_values_history, "Wykres wartości najlepszego rozwiązania w zależności od generacji", f"{dir_name}/wykres.png")
+        plot_best(ga.best_values_history, "Wykres wartości najlepszego rozwiązania w zależności od generacji",
+                  f"{dir_name}/wykres.png")
+
+        self.run_button.setEnabled(True)
+        self.run_button.setText('Run Genetic Algorithm')
 
 
 if __name__ == '__main__':

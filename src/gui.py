@@ -140,6 +140,9 @@ class GeneticAlgorithmGUI(QWidget):
         self.best_generation_label = QLabel('Best Generation:')
         layout.addWidget(self.best_generation_label)
 
+        self.calculation_time = QLabel('Calculation Time:')
+        layout.addWidget(self.calculation_time)
+
         self.setLayout(layout)
         self.update_tournament_size_visibility()
         self.update_mutation_points_visibility()
@@ -260,6 +263,7 @@ class GeneticAlgorithmGUI(QWidget):
         self.decoded_best_value_label.setText(f'Global Optimum Solution:\n{global_optimum_solution}')
         self.best_generation_label.setText(
             f'Global Optimum Value:\n{global_optimum_value}\nBest Generation:\n{result["best_generation"]}')
+        self.calculation_time.setText(f"Calculation Time: {end - start:.4f} seconds")
 
         dir_name = f"../results/{datetime.now().strftime('%d-%m-%Y_%H-%M-%S')}"
         Path(dir_name).mkdir(parents=True, exist_ok=True)

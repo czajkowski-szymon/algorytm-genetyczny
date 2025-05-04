@@ -47,7 +47,7 @@ class GeneticAlgorithmGUI(QWidget):
         form_layout.addRow('N:', self.N_input)
 
         self.precision_input = QSpinBox()
-        self.precision_input.setRange(1, 10)
+        self.precision_input.setRange(1, 100)
         self.precision_input.setValue(6)
         form_layout.addRow('Precision:', self.precision_input)
 
@@ -95,7 +95,7 @@ class GeneticAlgorithmGUI(QWidget):
         form_layout.addRow('Number of Mutation Points:', self.n_mutation_points_input)
 
         self.n_elites_input = QSpinBox()
-        self.n_elites_input.setRange(0, 10)
+        self.n_elites_input.setRange(0, 100)
         self.n_elites_input.setValue(1)
         form_layout.addRow('Number of Elites:', self.n_elites_input)
 

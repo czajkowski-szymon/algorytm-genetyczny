@@ -60,7 +60,7 @@ def select(pop, pop_results, method='best', selection_ratio=0.3, tournament_size
     elif method == "roulette":
         return roulette(pop, pop_results, n, max)
     elif method == "tournament":
-        return tournament(pop, pop_results, n, tournament_size)
+        return tournament(pop, pop_results, n, tournament_size, max)
     else:
         raise ValueError()
 
